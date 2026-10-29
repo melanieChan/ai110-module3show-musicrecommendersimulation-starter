@@ -43,6 +43,29 @@ The `UserProfile` dataclass stores a compact taste profile rather than a full li
 
 It will recommend songs based on engery, genre, mood, and acoustic preference. Although `songs.csv` offers more fields, some of those fields are similar to each other, so I would use only one from each group: energy, tempo_bpm, and danceability are similar, so I only use energy; valence is also similar to mood (a happy song is already high-valence), so mood alone captures that signal instead of scoring valence separately. A real world system would incoporate collaborative filtering and content based filtering, but since we don't have information on other users yet, it would mainly use content based filtering.
 
+### Algorithm Recipe
+
+This rule set `score_song()` uses to turn a `Song` + `UserProfile` pair into a single number, in order of how strongly each field should count.
+
+| Signal | Rule | Points |
+|---|---|---|
+| Genre match | `song.genre == user.favorite_genre` | **+4** (all or nothing) |
+| Mood match | `song.mood == user.favorite_mood` | **+3** (all or nothing) |
+| Energy fit | how close `song.energy` is to `user.target_energy` | **up to +2**, scaled |
+| Acoustic nudge | only applied if `user.likes_acoustic` is `True` | **up to +1**, scaled |
+
+Max possible score: **10**. Min possible score: **0**.
+
+**Why these weights:** genre and mood are treated as hard categorical preferences (a user picked one genre and one mood, so an exact match should dominate the score), while energy and acousticness are treated as soft, continuous signals — close-enough still counts for something, and they shouldn't be able to outweigh a genre/mood mismatch.
+
+**Biases:**
+
+- **Exact-string genre matching penalizes near-matches.** `genre` is compared with `==`, so a user who loves `pop` gets zero genre credit for `indie pop` or `synthwave` even though they're similar. This favors catalogs/users whose labels happen to line up exactly and penalizes hybrid or niche genre tags.
+- **Genre + mood (7 of 10 points) dominate energy (2 points) by design.** This assumes that category labels matter more than how a song actually feels, so a song that matches genre and mood but has very different energy will almost always outrank a much better energy fit with a mismatched genre/mood — even for users who'd say vibe matters more than the label.
+- **The acoustic nudge is one-directional.** `likes_acoustic=True` adds up to 1 point; there's no symmetric signal for someone who actively prefers non-acoustic/electronic songs. Users with that preference get no scoring benefit for it, even though it's just as real a taste signal.
+- **A single genre/mood/energy/acoustic-flag can't represent eclectic taste.** The scoring assumes one favorite genre and one favorite mood per user, which flattens anyone with mixed or evolving taste into a single label they picked.
+- **No diversity control in ranking.** Because songs are ranked purely by raw score, top-k results can cluster around the same artist or near-duplicate songs, reinforcing a narrow slice of the catalog rather than offering variety.
+
 
 ---
 
