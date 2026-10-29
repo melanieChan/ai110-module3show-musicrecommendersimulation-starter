@@ -17,17 +17,32 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+This system will recommend songs based on traits of the song that matches the user's preferences.
 
-Some prompts to answer:
+### `Song`
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+Each `Song` is a dataclass holding the fields loaded directly from `songs.csv`:
 
-You can include a simple diagram or bullet list if helpful.
+- `id`, `title`, `artist` — identity and display info, not used in scoring
+- `genre` (str) — e.g. `pop`, `lofi`, `rock`
+- `mood` (str) — e.g. `happy`, `chill`, `sad`
+- `energy` (float, 0–1) — how intense/high-energy the track is; used in scoring
+- `valence` (float, 0–1) — musical positivity; not separately weighted in scoring since it tracks `mood` closely (a `happy` song is already high-valence, a `sad` one low), so matching `mood` captures this signal
+- `tempo_bpm`, `danceability`, `acousticness` (float) — `acousticness` is used via `likes_acoustic` matching; `tempo_bpm`/`danceability` are not separately weighted since they correlate closely with `energy`
+
+### `UserProfile`
+
+The `UserProfile` dataclass stores a compact taste profile rather than a full listening history:
+
+- `favorite_genre` (str) — matched against `Song.genre`
+- `favorite_mood` (str) — matched against `Song.mood`
+- `target_energy` (float, 0–1) — the energy level the user wants, compared against `Song.energy`
+- `likes_acoustic` (bool) — a simple toggle that nudges scoring toward higher-`acousticness` songs without needing another numeric weight
+
+### `Recommender`
+
+It will recommend songs based on engery, genre, mood, and acoustic preference. Although `songs.csv` offers more fields, some of those fields are similar to each other, so I would use only one from each group: energy, tempo_bpm, and danceability are similar, so I only use energy; valence is also similar to mood (a happy song is already high-valence), so mood alone captures that signal instead of scoring valence separately. A real world system would incoporate collaborative filtering and content based filtering, but since we don't have information on other users yet, it would mainly use content based filtering.
+
 
 ---
 
