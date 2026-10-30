@@ -19,6 +19,20 @@ Replace this paragraph with your own summary of what your version does.
 
 This system will recommend songs based on traits of the song that matches the user's preferences.
 
+Real-world music recommenders like Spotify or YouTube Music blend several kinds of signals to decide what to play next:
+
+- **Input data** — raw facts about each item, independent of any one user: a song's genre, mood/valence, tempo, key, and audio features. For a video platform, this is metadata like category, length, and captions.
+- **User preferences** — what a specific listener seems to want, usually inferred rather than stated outright: listening history, skip/replay/like behavior, time of day, and similarity to other users with overlapping taste (collaborative filtering).
+- **Ranking/selection** — turning (input data + user preferences) into an ordered list: candidate items are scored against the inferred preference profile, then sorted and truncated to a top-N list, often with extra business logic layered on top (diversity, freshness, promoted content).
+
+This project is a deliberately simplified version of that same pipeline:
+
+- **Input data** → the song catalog in `data/songs.csv` (genre, mood, energy, tempo, valence, danceability, acousticness).
+- **User preferences** → `UserProfile`, but stated directly by the user (favorite genre/mood, target energy, acoustic preference) instead of inferred from listening history, since there's no behavioral data to learn from.
+- **Ranking/selection** → `score_song()` scores every song against that profile, and `recommend_songs()` sorts and returns the top-k.
+
+Because there's no listening history or other users to compare against, this system is purely **content-based filtering** (matching item features to a stated profile), not **collaborative filtering** (matching users to similar users) — real systems like Spotify combine both, but collaborative filtering only becomes possible once you have data from many users' behavior, which this project doesn't have.
+
 ### `Song`
 
 Each `Song` is a dataclass holding the fields loaded directly from `songs.csv`:
