@@ -106,6 +106,8 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
+### One user profile:
+
 ```
 Loading songs from data/songs.csv...
 User preferences:
@@ -131,29 +133,151 @@ Storm Runner - Score: 1.78
 Because: Energy 0.91 vs target 0.80 (+1.78)
 ```
 
+### Multiple user profiles:
+```
+Loading songs from data/songs.csv...
+=== Profile: Baseline ===
+User preferences:
+  genre: pop
+  mood: happy
+  energy: 0.8
+
+Top recommendations:
+
+Sunrise City - Score: 8.96
+Because: Genre matches (pop), Mood matches (happy), Energy 0.82 vs target 0.80 (+1.96)
+
+Gym Hero - Score: 5.74
+Because: Genre matches (pop), Energy 0.93 vs target 0.80 (+1.74)
+
+Rooftop Lights - Score: 4.92
+Because: Mood matches (happy), Energy 0.76 vs target 0.80 (+1.92)
+
+Night Drive Loop - Score: 1.90
+Because: Energy 0.75 vs target 0.80 (+1.90)
+
+Storm Runner - Score: 1.78
+Because: Energy 0.91 vs target 0.80 (+1.78)
+
+
+=== Profile: Adversarial: conflicting energy/mood (high energy + sad) ===
+User preferences:
+  genre: hip hop
+  mood: sad
+  energy: 0.9
+
+Top recommendations:
+
+Broken Compass - Score: 8.10
+Because: Genre matches (hip hop), Mood matches (sad), Energy 0.45 vs target 0.90 (+1.10)
+
+Storm Runner - Score: 1.98
+Because: Energy 0.91 vs target 0.90 (+1.98)
+
+Gym Hero - Score: 1.94
+Because: Energy 0.93 vs target 0.90 (+1.94)
+
+Iron Verdict - Score: 1.88
+Because: Energy 0.96 vs target 0.90 (+1.88)
+
+Pulse Overdrive - Score: 1.86
+Because: Energy 0.97 vs target 0.90 (+1.86)
+
+
+=== Profile: Edge case: genre/mood not in dataset ===
+User preferences:
+  genre: opera
+  mood: ecstatic
+  energy: 0.6
+
+Top recommendations:
+
+Dusty Highway - Score: 1.90
+Because: Energy 0.55 vs target 0.60 (+1.90)
+
+Velvet Hours - Score: 1.80
+Because: Energy 0.50 vs target 0.60 (+1.80)
+
+Broken Compass - Score: 1.70
+Because: Energy 0.45 vs target 0.60 (+1.70)
+
+Island Ease - Score: 1.70
+Because: Energy 0.45 vs target 0.60 (+1.70)
+
+Night Drive Loop - Score: 1.70
+Because: Energy 0.75 vs target 0.60 (+1.70)
+
+
+=== Profile: Edge case: out-of-range target energy (> 1.0) ===
+User preferences:
+  genre: edm
+  mood: euphoric
+  energy: 1.5
+
+Top recommendations:
+
+Pulse Overdrive - Score: 7.94
+Because: Genre matches (edm), Mood matches (euphoric), Energy 0.97 vs target 1.50 (+0.94)
+
+Iron Verdict - Score: 0.92
+Because: Energy 0.96 vs target 1.50 (+0.92)
+
+Gym Hero - Score: 0.86
+Because: Energy 0.93 vs target 1.50 (+0.86)
+
+Storm Runner - Score: 0.82
+Because: Energy 0.91 vs target 1.50 (+0.82)
+
+Sunrise City - Score: 0.64
+Because: Energy 0.82 vs target 1.50 (+0.64)
+
+
+=== Profile: Adversarial: acoustic lover wants angry metal ===
+User preferences:
+  genre: metal
+  mood: angry
+  energy: 0.95
+  likes_acoustic: True
+
+Top recommendations:
+
+Iron Verdict - Score: 9.03
+Because: Genre matches (metal), Mood matches (angry), Energy 0.96 vs target 0.95 (+1.98), Acoustic nudge (+0.05)
+
+Storm Runner - Score: 2.02
+Because: Energy 0.91 vs target 0.95 (+1.92), Acoustic nudge (+0.10)
+
+Gym Hero - Score: 2.01
+Because: Energy 0.93 vs target 0.95 (+1.96), Acoustic nudge (+0.05)
+
+Pulse Overdrive - Score: 1.98
+Because: Energy 0.97 vs target 0.95 (+1.96), Acoustic nudge (+0.02)
+
+Rooftop Lights - Score: 1.97
+Because: Energy 0.76 vs target 0.95 (+1.62), Acoustic nudge (+0.35)
+```
+
 ---
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+**Stress-testing with diverse profiles.** I ran five profiles through `recommend_songs()` beyond the starter example: a baseline (`pop`/`happy`/energy `0.8`); an adversarial profile with conflicting signals (`hip hop`/`sad`/energy `0.9` — unusually high energy for a "sad" mood); an edge case with a genre/mood not present in the catalog at all (`opera`/`ecstatic`); an edge case with an out-of-range target energy (`1.5`, above the valid 0-1 scale); and an adversarial profile with contradictory taste (wants `metal`/`angry` but also `likes_acoustic=True`, even though metal songs in this catalog have near-zero acousticness). All five ran without errors and produced a ranked top-5, but the two edge cases revealed that the system never flags bad input — it just quietly scores whatever it's given (see Limitations below).
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+**Weight shift: genre halved, energy doubled.** For the experiment, I changed `score_song()`'s genre-match weight from `+4` to `+2` and the max energy-fit score from `+2` to `+4`, then re-ran all five profiles. Results:
+
+- The **#1 recommendation never changed** in any profile — when a song matches genre, mood, *and* energy, it wins by a wide enough margin that this specific reweighting didn't flip the top pick.
+- The **#2-#5 ordering shifted in 2 of 5 profiles**. In the baseline, `Rooftop Lights` (mood-only match, energy 0.76) jumped from #3 to #2, overtaking `Gym Hero` (genre-only match, energy 0.93) — because energy-closeness now outweighs a genre match alone. The same pattern appeared in the acoustic/metal profile.
+- **Takeaway:** reweighting doesn't remove a bias, it relocates it. The original weights favor a "genre/mood bubble" (category labels dominate); doubling energy's weight instead favors an "energy/tempo bubble" (songs that *feel* similar can now outrank songs that are categorically correct).
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+- **Tiny, hand-curated catalog (18 songs).** Most genre/mood combinations appear in at most one or two songs, so there's rarely real competition within a category — the ranking logic hasn't been tested against a catalog where many songs plausibly tie.
+- **No input validation.** Energy values outside 0-1, or a genre/mood string that doesn't exist in the catalog, are accepted and scored anyway. The system has no way to tell a user "none of this really matches" — it just returns its best-effort top-5 with the same confident formatting every time, which risks misleading a user into thinking a weak match is a strong one.
+- **Exact-match-only genre/mood comparison.** `pop` and `indie pop` are treated as completely unrelated, so the system can't recognize near-misses or hybrid genres — it's more rigid than real musical taste.
+- **One genre + one mood per user.** The `UserProfile` schema can't represent someone who likes more than one genre or is open to more than one mood, so eclectic listeners get flattened into a single label.
+- **It does not understand lyrics, language, or any audio content directly** — all scoring is based on the numeric/categorical metadata in `songs.csv`, not the music itself.
 
 ---
 
