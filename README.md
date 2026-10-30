@@ -283,14 +283,7 @@ Because: Energy 0.76 vs target 0.95 (+1.62), Acoustic nudge (+0.35)
 
 ## Reflection
 
-Read and complete `model_card.md`:
+I learned that recommenders can use weights to give specific traits more impact in the scoring. Bias or unfairness could show up in systems like this when the specific weights for certain traits are fixed in the system, because different users may have different priorities for which traits should hold more or less weight. By having all recommendations use the same fixed weights determined by the system, the recommendations could be less catered toward the users' preferences.
 
-[**Model Card**](model_card.md)
-
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
-
+Testing this system also showed me that a real, more complex recommender would need a lot more than four variables to actually capture someone's taste, things like genre and mood similarity, listening history, and complex preferences.
 
